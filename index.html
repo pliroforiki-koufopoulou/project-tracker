@@ -354,6 +354,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
 .file-chip-remove{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:5px;flex-shrink:0}
 .file-chip-remove:hover{background:#fecaca;color:#dc2626}
 .file-attach-hint{font-size:11.5px;color:var(--text3);font-style:italic;padding:6px 0}
+.gdrive-connected-indicator{font-size:10.5px;color:var(--text3);margin-left:6px}
 .proj-card-file-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#fff;background:#0ea5e9;padding:2px 7px;border-radius:20px}
 .task-file-badge{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;padding:4px 8px;border-radius:8px;background:var(--bg);border:1.5px solid var(--border)}
 .task-file-badge.has-files{color:#fff;background:#0ea5e9;border-color:#0ea5e9}
@@ -622,6 +623,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
       <div class="file-attach-label">
         <span>📎 Συνημμένα αρχεία</span>
         <button type="button" class="file-upload-btn" id="file-upload-btn-project-current" onclick="triggerFileUpload('project',editingProjectId)">📎 Ανέβασμα αρχείου</button>
+        <span class="gdrive-connected-indicator" id="gdrive-indicator-project"></span>
       </div>
       <div class="file-list" id="file-list-project-current"></div>
     </div>
@@ -664,6 +666,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
       <div class="file-attach-label">
         <span>📎 Συνημμένα αρχεία</span>
         <button type="button" class="file-upload-btn" id="file-upload-btn-task-current" onclick="triggerFileUpload('task',editingTaskId)">📎 Ανέβασμα αρχείου</button>
+        <span class="gdrive-connected-indicator" id="gdrive-indicator-task"></span>
       </div>
       <div class="file-list" id="file-list-task-current"></div>
     </div>
@@ -1488,6 +1491,7 @@ function openProjectModal(projId){
     pFileSection.style.display='block';
     pFileHint.style.display='none';
     renderFileList('project',projId);
+    updateGdriveIndicators();
   }else{
     pFileSection.style.display='none';
     pFileHint.style.display='block';
@@ -1565,6 +1569,7 @@ function openTaskModal(projId,phId,taskId){
     fileSection.style.display='block';
     fileHint.style.display='none';
     renderFileList('task',taskId);
+    updateGdriveIndicators();
   }else{
     fileSection.style.display='none';
     fileHint.style.display='block';
@@ -1825,10 +1830,21 @@ function ensureGdriveTokenClient(){
   gdriveTokenClient=google.accounts.oauth2.initTokenClient({
     client_id:GDRIVE_CLIENT_ID,
     scope:'https://www.googleapis.com/auth/drive.file',
-    callback:()=>{} // ορίζεται δυναμικά ανά χρήση
+    callback:()=>{}, // ορίζεται δυναμικά ανά χρήση
+    error_callback:(err)=>{
+      if(window._gdriveRejectCurrent){
+        const msg=err&&err.type==='popup_closed'?'Το παράθυρο σύνδεσης έκλεισε πριν ολοκληρωθεί η επιλογή λογαριασμού.':
+                   err&&err.type==='popup_failed_to_open'?'Το παράθυρο σύνδεσης μπλοκαρίστηκε από τον browser. Επίτρεψε τα pop-ups για αυτή τη σελίδα και δοκίμασε ξανά.':
+                   'Η σύνδεση με Google απέτυχε ('+(err&&err.type?err.type:'άγνωστο σφάλμα')+').';
+        window._gdriveRejectCurrent(new Error(msg));
+        window._gdriveRejectCurrent=null;
+      }
+    }
   });
   return true;
 }
+
+let gdriveConnectedEmail=null;
 
 function getGdriveAccessToken(){
   return new Promise((resolve,reject)=>{
@@ -1837,13 +1853,45 @@ function getGdriveAccessToken(){
       reject(new Error('Η σύνδεση με Google δεν φόρτωσε ακόμα. Δοκίμασε ξανά σε λίγο.'));
       return;
     }
+    let settled=false;
+    const timeoutId=setTimeout(()=>{
+      if(!settled){
+        settled=true;
+        window._gdriveRejectCurrent=null;
+        reject(new Error('Η σύνδεση με Google καθυστέρησε πολύ. Έλεγξε ότι επιτρέπονται τα pop-ups και δοκίμασε ξανά.'));
+      }
+    },25000);
+    window._gdriveRejectCurrent=(err)=>{
+      if(!settled){settled=true;clearTimeout(timeoutId);reject(err);}
+    };
     gdriveTokenClient.callback=(resp)=>{
+      if(settled)return;
+      settled=true;clearTimeout(timeoutId);window._gdriveRejectCurrent=null;
       if(resp.error){reject(new Error(resp.error));return;}
       gdriveAccessToken=resp.access_token;
       gdriveTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
       resolve(gdriveAccessToken);
     };
     gdriveTokenClient.requestAccessToken({prompt:gdriveAccessToken?'':'consent'});
+  });
+}
+
+async function fetchGdriveConnectedEmail(token){
+  try{
+    const res=await fetch('https://www.googleapis.com/drive/v3/about?fields=user',{
+      headers:{Authorization:'Bearer '+token}
+    });
+    const data=await res.json();
+    gdriveConnectedEmail=data.user?data.user.emailAddress:null;
+    updateGdriveIndicators();
+    return gdriveConnectedEmail;
+  }catch(e){return null;}
+}
+
+function updateGdriveIndicators(){
+  ['project','task'].forEach(t=>{
+    const el=document.getElementById('gdrive-indicator-'+t);
+    if(el)el.textContent=gdriveConnectedEmail?'· Συνδεδεμένο ως: '+gdriveConnectedEmail:'';
   });
 }
 
@@ -1893,6 +1941,10 @@ async function uploadFileToDrive(file,entityType,entityId){
   if(btn){btn.disabled=true;btn.textContent='⏳ Ανέβασμα...';}
   try{
     const token=await getGdriveAccessToken();
+    if(!gdriveConnectedEmail){
+      await fetchGdriveConnectedEmail(token);
+      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε Google Drive: '+gdriveConnectedEmail);
+    }
     const folderId=await ensureGdriveFolder(token);
     const metadata={name:file.name,parents:[folderId]};
     const form=new FormData();
