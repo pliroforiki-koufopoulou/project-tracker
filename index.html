@@ -1936,11 +1936,11 @@ function formatFileSize(bytes){
   return (b/1024/1024).toFixed(1)+' MB';
 }
 
-async function uploadFileToDrive(file,entityType,entityId){
+async function uploadFileToDrive(file,entityType,entityId,existingToken){
   const btn=document.getElementById('file-upload-btn-'+entityType+'-current');
   if(btn){btn.disabled=true;btn.textContent='⏳ Ανέβασμα...';}
   try{
-    const token=await getGdriveAccessToken();
+    const token=existingToken||await getGdriveAccessToken();
     if(!gdriveConnectedEmail){
       await fetchGdriveConnectedEmail(token);
       if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε Google Drive: '+gdriveConnectedEmail);
@@ -2051,13 +2051,28 @@ function renderFileList(entityType,entityId){
 }
 
 function triggerFileUpload(entityType,entityId){
-  const input=document.createElement('input');
-  input.type='file';
-  input.onchange=e=>{
-    const file=e.target.files[0];
-    if(file)uploadFileToDrive(file,entityType,entityId);
-  };
-  input.click();
+  const btn=document.getElementById('file-upload-btn-'+entityType+'-current');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Σύνδεση με Google...';}
+  // Ζητάμε πρώτα την άδεια Google — ΑΠΕΥΘΕΙΑΣ από το κλικ, ώστε να μην μπλοκαριστεί το popup
+  getGdriveAccessToken().then(async token=>{
+    if(!gdriveConnectedEmail){
+      await fetchGdriveConnectedEmail(token);
+      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε Google Drive: '+gdriveConnectedEmail);
+    }
+    if(btn){btn.disabled=false;btn.innerHTML='📎 Ανέβασμα αρχείου';}
+    // Τώρα ανοίγουμε τον επιλογέα αρχείων
+    const input=document.createElement('input');
+    input.type='file';
+    input.onchange=e=>{
+      const file=e.target.files[0];
+      if(file)uploadFileToDrive(file,entityType,entityId,token);
+    };
+    input.click();
+  }).catch(err=>{
+    console.warn('Gdrive auth error:',err);
+    if(btn){btn.disabled=false;btn.innerHTML='📎 Ανέβασμα αρχείου';}
+    alert('Σφάλμα σύνδεσης με Google Drive: '+err.message);
+  });
 }
 
 // ── AUTO DOWNLOAD & GOOGLE DRIVE ──
