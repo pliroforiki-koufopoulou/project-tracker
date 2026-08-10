@@ -1997,8 +1997,9 @@ function addFileToEntity(entityType,entityId,fileObj){
   if(entityType==='task'&&currentView==='project')renderProject(currentProjectId);
 }
 
-function removeFileFromEntity(entityType,entityId,fileId){
-  if(!confirm('Αφαίρεση αρχείου από το ProjectFlow; (Το αρχείο ΔΕΝ διαγράφεται από το Google Drive σου)'))return;
+async function removeFileFromEntity(entityType,entityId,fileId){
+  if(!confirm('Αφαίρεση αρχείου από το ProjectFlow;'))return;
+  const alsoDeleteFromDrive=confirm('Θέλεις να διαγραφεί οριστικά και από το Google Drive σου;\n\nΟΚ = Διαγραφή και από τα δύο (δεν αναιρείται)\nΆκυρο = Μόνο αφαίρεση από το ProjectFlow (το αρχείο μένει ασφαλές στο Drive)');
   let entity=null;
   if(entityType==='project'){
     entity=(appData.projects||[]).find(p=>p.id===entityId);
@@ -2016,6 +2017,23 @@ function removeFileFromEntity(entityType,entityId,fileId){
   saveData();
   renderFileList(entityType,entityId);
   if(entityType==='task'&&currentView==='project')renderProject(currentProjectId);
+  if(alsoDeleteFromDrive){
+    try{
+      const token=await getGdriveAccessToken();
+      const res=await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`,{
+        method:'DELETE',
+        headers:{Authorization:'Bearer '+token}
+      });
+      if(res.ok||res.status===204){
+        showToast('🗑️ Το αρχείο διαγράφηκε και από το Google Drive');
+      }else{
+        showToast('⚠️ Αφαιρέθηκε από ProjectFlow, αλλά η διαγραφή από Drive απέτυχε');
+      }
+    }catch(e){
+      console.warn('Drive delete error:',e);
+      showToast('⚠️ Αφαιρέθηκε από ProjectFlow, αλλά η διαγραφή από Drive απέτυχε');
+    }
+  }
 }
 
 function getEntityFiles(entityType,entityId){
