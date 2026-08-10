@@ -1669,6 +1669,23 @@ function closeAllModals(){
     if(el)el.style.display='none';
   });
 }
+function closeModal(e){if(e.target===document.getElementById('modal-overlay'))closeAllModals();}
+
+// ── JSON EXPORT ──
+function exportJSON(){
+  if(!appData){showToast('❌ Δεν υπάρχουν δεδομένα');return;}
+  try{
+    const payload={exportedAt:new Date().toISOString(),version:'1.0',data:appData};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='projectflow-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(url);
+    showToast('💾 Backup JSON αποθηκεύτηκε!');
+  }catch(e){showToast('❌ Σφάλμα: '+e.message);}
+}
 
 // ── JSON IMPORT ──
 function importJSON(){
