@@ -17,7 +17,10 @@
     messagingSenderId: "997374537570",
     appId:             "1:997374537570:web:7af6ee101c86aaf273c63b"
   };
+  const GDRIVE_CLIENT_ID = "745802379549-sl2j1pqpif66542uu87jnb7bnsqhv6k2.apps.googleusercontent.com";
+  const GDRIVE_API_KEY   = "AIzaSyAmFfuRM2yj19-XuMOFUAYjwCgU6ljCxgc";
 </script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -335,6 +338,26 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
 .backup-auto-indicator{position:fixed;bottom:20px;right:20px;background:#1a1d2e;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:9999}
 .backup-auto-indicator.show{opacity:1}
 
+/* FILE ATTACHMENTS (Google Drive) */
+.file-attach-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.file-attach-label{font-size:12.5px;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.file-upload-btn{background:var(--accent-l);color:var(--accent);border:1.5px dashed var(--accent);border-radius:10px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;display:inline-flex;align-items:center;gap:6px}
+.file-upload-btn:hover{background:var(--accent);color:#fff}
+.file-upload-btn:disabled{opacity:.6;cursor:wait}
+.file-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.file-chip{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;background:var(--bg);border:1px solid var(--border)}
+.file-chip-icon{font-size:17px;flex-shrink:0}
+.file-chip-info{flex:1;min-width:0}
+.file-chip-name{font-size:12.5px;font-weight:600;color:var(--text1);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-chip-name:hover{text-decoration:underline;color:var(--accent)}
+.file-chip-meta{font-size:10.5px;color:var(--text3);margin-top:1px}
+.file-chip-remove{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:5px;flex-shrink:0}
+.file-chip-remove:hover{background:#fecaca;color:#dc2626}
+.file-attach-hint{font-size:11.5px;color:var(--text3);font-style:italic;padding:6px 0}
+.proj-card-file-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#fff;background:#0ea5e9;padding:2px 7px;border-radius:20px}
+.task-file-badge{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;padding:4px 8px;border-radius:8px;background:var(--bg);border:1.5px solid var(--border)}
+.task-file-badge.has-files{color:#fff;background:#0ea5e9;border-color:#0ea5e9}
+
 /* TASK COMMENTS DRAWER */
 .chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;display:none;opacity:0;transition:opacity .2s}
 .chat-overlay.open{display:block;opacity:1}
@@ -595,6 +618,14 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
       </div>
     </div>
     <div class="form-group"><label class="form-label">Ομάδα</label><select class="form-select" id="inp-proj-group"><option value="">— Χωρίς ομάδα —</option></select></div>
+    <div id="proj-file-section" class="file-attach-section" style="display:none">
+      <div class="file-attach-label">
+        <span>📎 Συνημμένα αρχεία</span>
+        <button type="button" class="file-upload-btn" id="file-upload-btn-project-current" onclick="triggerFileUpload('project',editingProjectId)">📎 Ανέβασμα αρχείου</button>
+      </div>
+      <div class="file-list" id="file-list-project-current"></div>
+    </div>
+    <div id="proj-file-hint" class="file-attach-hint" style="display:none">💾 Αποθήκευσε πρώτα το project για να μπορείς να προσθέσεις αρχεία.</div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeAllModals()">Ακύρωση</button><button class="btn btn-primary" onclick="saveProject()">Αποθήκευση</button></div>
   </div>
   <div class="modal" id="modal-phase" onclick="event.stopPropagation()" style="display:none">
@@ -629,6 +660,14 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
       <div class="form-group"><label class="form-label">Εβδομάδα Λήξης</label><input class="form-input" type="number" id="inp-task-wend" placeholder="2" min="1"></div>
     </div>
     <div class="form-group"><label class="form-label">Σημειώσεις</label><textarea class="form-textarea" id="inp-task-notes" placeholder="Σχόλια, οδηγίες..."></textarea></div>
+    <div id="task-file-section" class="file-attach-section" style="display:none">
+      <div class="file-attach-label">
+        <span>📎 Συνημμένα αρχεία</span>
+        <button type="button" class="file-upload-btn" id="file-upload-btn-task-current" onclick="triggerFileUpload('task',editingTaskId)">📎 Ανέβασμα αρχείου</button>
+      </div>
+      <div class="file-list" id="file-list-task-current"></div>
+    </div>
+    <div id="task-file-hint" class="file-attach-hint" style="display:none">💾 Αποθήκευσε πρώτα την εργασία για να μπορείς να προσθέσεις αρχεία.</div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeAllModals()">Ακύρωση</button><button class="btn btn-primary" onclick="saveTask()">Αποθήκευση</button></div>
   </div>
   <div class="modal confirm-modal" id="modal-confirm" onclick="event.stopPropagation()" style="display:none">
@@ -1192,6 +1231,8 @@ function buildCardHtml(p){
   const phasePills=(p.phases||[]).map(ph=>`<span class="phase-pill-mini" style="background:${ph.color}18;color:${ph.color}">${ph.name.split(':')[0].trim()} ${calcProgress(ph.tasks||[])}%</span>`).join('');
   const totalComments=tasks.reduce((a,t)=>a+((t.comments||[]).length),0);
   const commentBadge=totalComments>0?`<span class="proj-card-comment-badge" title="Σχόλια σε εργασίες">💬 ${totalComments}</span>`:'';
+  const totalFiles=(p.files||[]).length+tasks.reduce((a,t)=>a+((t.files||[]).length),0);
+  const fileBadge=totalFiles>0?`<span class="proj-card-file-badge" title="Συνημμένα αρχεία">📎 ${totalFiles}</span>`:'';
   return `<div class="proj-card-top">
       <div class="proj-card-header">
         <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0">
@@ -1207,6 +1248,7 @@ function buildCardHtml(p){
         ${statusSelect}
         <div style="display:flex;align-items:center;gap:8px">
           ${commentBadge}
+          ${fileBadge}
           <span style="font-size:11px;color:var(--text3)">${tasks.length} tasks</span>
         </div>
       </div>
@@ -1316,7 +1358,7 @@ function renderProject(projId){
     html+=`<div class="phase-block" id="ph-block-${ph.id}" style="animation-delay:${pi*.06}s"><div class="phase-header" onclick="togglePhase('${p.id}','${ph.id}')"><div class="phase-header-left"><div class="phase-color-bar" style="background:${ph.color}"></div><span class="phase-name">${ph.name}</span><span class="phase-task-count">${(ph.tasks||[]).length} tasks</span></div><div class="phase-header-right"><div style="display:flex;gap:6px;align-items:center"><div style="width:80px;height:4px;background:var(--border);border-radius:99px;overflow:hidden"><div style="width:${ppct}%;height:100%;background:${pcol};border-radius:99px"></div></div><span class="phase-prog-mini" style="color:${pcol}">${ppct}%</span></div><button class="task-action-btn" onclick="event.stopPropagation();editPhase('${p.id}','${ph.id}')">✎</button><button class="task-action-btn del" onclick="event.stopPropagation();confirmDeletePhase('${p.id}','${ph.id}')">🗑</button><span class="phase-chevron ${isOpen?'open':''}">▾</span></div></div><div class="phase-body" id="ph-body-${ph.id}" style="${isOpen?'':'display:none'}"><table class="task-table"><thead><tr><th style="width:36%">Εργασία</th><th>Υπεύθυνος</th><th>Προτεραιότητα</th><th>Status</th><th>Εβδομάδες</th><th style="width:60px"></th></tr></thead><tbody>`;
     if(!(ph.tasks||[]).length){html+=`<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px;font-style:italic">Καμία εργασία ακόμα</td></tr>`;}
     else{(ph.tasks||[]).forEach((t,ti)=>{const tlen=(ph.tasks||[]).length;const tsTask=t.createdAt?'<div class="ts-label">🕐 '+new Date(t.createdAt).toLocaleDateString('el-GR',{day:'numeric',month:'short'})+'</div>':'';
-    html+=`<tr data-task-id="${t.id}"><td class="task-name-cell"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>${t.name}</span><span class="task-comment-badge${(t.comments||[]).length?' has-comments':''}" onclick="event.stopPropagation();openTaskChat('${p.id}','${ph.id}','${t.id}')" title="Σχόλια">💬${(t.comments||[]).length?' '+t.comments.length:''}</span></div>${t.notes?`<div class="task-notes">${t.notes}</div>`:''} ${tsTask}</td><td><span class="assignee-tag">${t.assignee||'—'}</span></td><td><span class="priority-badge ${PRIORITY_CLASS[t.priority]||'pr-normal'}">${PRIORITY_LABEL[t.priority]||t.priority}</span></td><td><select class="status-select s-${t.status}" onchange="changeStatus('${p.id}','${ph.id}','${t.id}',this.value,'${t.name.replace(/'/g,"\\'")}','${ph.name.replace(/'/g,"\\'")}')"><option value="not_started" ${t.status==='not_started'?'selected':''}>Δεν έχει ξεκινήσει</option><option value="in_progress" ${t.status==='in_progress'?'selected':''}>Σε εξέλιξη</option><option value="completed" ${t.status==='completed'?'selected':''}>Ολοκληρώθηκε</option><option value="delayed" ${t.status==='delayed'?'selected':''}>Καθυστέρηση</option></select></td><td><span class="week-chip">Εβδ. ${t.weekStart||'—'}${t.weekEnd&&t.weekEnd!==t.weekStart?'–'+t.weekEnd:''}</span></td><td><div class="task-actions"><div class="move-btns"><button class="task-action-btn move" title="Πάνω" ${ti===0?"disabled":""} onclick="moveTask('${p.id}','${ph.id}','${t.id}',-1)">▲</button><button class="task-action-btn move" title="Κάτω" ${ti===tlen-1?"disabled":""} onclick="moveTask('${p.id}','${ph.id}','${t.id}',1)">▼</button></div><button class="task-action-btn" onclick="editTask('${p.id}','${ph.id}','${t.id}')">✎</button><button class="task-action-btn del" onclick="confirmDeleteTask('${p.id}','${ph.id}','${t.id}')">×</button></div></td></tr>`;});}
+    html+=`<tr data-task-id="${t.id}"><td class="task-name-cell"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>${t.name}</span><span class="task-comment-badge${(t.comments||[]).length?' has-comments':''}" onclick="event.stopPropagation();openTaskChat('${p.id}','${ph.id}','${t.id}')" title="Σχόλια">💬${(t.comments||[]).length?' '+t.comments.length:''}</span><span class="task-file-badge${(t.files||[]).length?' has-files':''}" onclick="event.stopPropagation();editTask('${p.id}','${ph.id}','${t.id}')" title="Συνημμένα αρχεία">📎${(t.files||[]).length?' '+t.files.length:''}</span></div>${t.notes?`<div class="task-notes">${t.notes}</div>`:''} ${tsTask}</td><td><span class="assignee-tag">${t.assignee||'—'}</span></td><td><span class="priority-badge ${PRIORITY_CLASS[t.priority]||'pr-normal'}">${PRIORITY_LABEL[t.priority]||t.priority}</span></td><td><select class="status-select s-${t.status}" onchange="changeStatus('${p.id}','${ph.id}','${t.id}',this.value,'${t.name.replace(/'/g,"\\'")}','${ph.name.replace(/'/g,"\\'")}')"><option value="not_started" ${t.status==='not_started'?'selected':''}>Δεν έχει ξεκινήσει</option><option value="in_progress" ${t.status==='in_progress'?'selected':''}>Σε εξέλιξη</option><option value="completed" ${t.status==='completed'?'selected':''}>Ολοκληρώθηκε</option><option value="delayed" ${t.status==='delayed'?'selected':''}>Καθυστέρηση</option></select></td><td><span class="week-chip">Εβδ. ${t.weekStart||'—'}${t.weekEnd&&t.weekEnd!==t.weekStart?'–'+t.weekEnd:''}</span></td><td><div class="task-actions"><div class="move-btns"><button class="task-action-btn move" title="Πάνω" ${ti===0?"disabled":""} onclick="moveTask('${p.id}','${ph.id}','${t.id}',-1)">▲</button><button class="task-action-btn move" title="Κάτω" ${ti===tlen-1?"disabled":""} onclick="moveTask('${p.id}','${ph.id}','${t.id}',1)">▼</button></div><button class="task-action-btn" onclick="editTask('${p.id}','${ph.id}','${t.id}')">✎</button><button class="task-action-btn del" onclick="confirmDeleteTask('${p.id}','${ph.id}','${t.id}')">×</button></div></td></tr>`;});}
     html+=`</tbody></table><button class="phase-add-task" onclick="openTaskModal('${p.id}','${ph.id}')">＋ Προσθήκη Εργασίας</button></div></div>`;
   });
   html+=`<button class="add-phase-btn" onclick="openPhaseModal('${p.id}')">＋ Νέα Φάση</button>`;
@@ -1440,6 +1482,16 @@ function openProjectModal(projId){
     if(p&&p.groupId===g.id)opt.selected=true;
     gSel.appendChild(opt);
   });
+  const pFileSection=document.getElementById('proj-file-section');
+  const pFileHint=document.getElementById('proj-file-hint');
+  if(p){
+    pFileSection.style.display='block';
+    pFileHint.style.display='none';
+    renderFileList('project',projId);
+  }else{
+    pFileSection.style.display='none';
+    pFileHint.style.display='block';
+  }
   showModal('modal-project');
 }
 function editCurrentProject(){if(currentProjectId)openProjectModal(currentProjectId);}
@@ -1507,6 +1559,16 @@ function openTaskModal(projId,phId,taskId){
   document.getElementById('inp-task-wstart').value=t?t.weekStart:'';
   document.getElementById('inp-task-wend').value=t?t.weekEnd:'';
   document.getElementById('inp-task-notes').value=t?t.notes:'';
+  const fileSection=document.getElementById('task-file-section');
+  const fileHint=document.getElementById('task-file-hint');
+  if(t){
+    fileSection.style.display='block';
+    fileHint.style.display='none';
+    renderFileList('task',taskId);
+  }else{
+    fileSection.style.display='none';
+    fileHint.style.display='block';
+  }
   showModal('modal-task');
 }
 function editTask(projId,phId,taskId){openTaskModal(projId,phId,taskId);}
@@ -1747,6 +1809,203 @@ function startAutoBackupTimer(){
       saveAutoBackup();
     }
   },30*60*1000);
+}
+
+// ── GOOGLE DRIVE FILE UPLOAD (real files: PDF, Word, Excel, κλπ.) ──
+let gdriveTokenClient=null;
+let gdriveAccessToken=null;
+let gdriveTokenExpiry=0;
+let gdriveFolderId=localStorage.getItem('pf-drive-upload-folder')||null;
+
+function ensureGdriveTokenClient(){
+  if(gdriveTokenClient)return true;
+  if(typeof google==='undefined'||!google.accounts||!google.accounts.oauth2){
+    return false; // GIS script δεν έχει φορτώσει ακόμα
+  }
+  gdriveTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GDRIVE_CLIENT_ID,
+    scope:'https://www.googleapis.com/auth/drive.file',
+    callback:()=>{} // ορίζεται δυναμικά ανά χρήση
+  });
+  return true;
+}
+
+function getGdriveAccessToken(){
+  return new Promise((resolve,reject)=>{
+    if(gdriveAccessToken&&Date.now()<gdriveTokenExpiry){resolve(gdriveAccessToken);return;}
+    if(!ensureGdriveTokenClient()){
+      reject(new Error('Η σύνδεση με Google δεν φόρτωσε ακόμα. Δοκίμασε ξανά σε λίγο.'));
+      return;
+    }
+    gdriveTokenClient.callback=(resp)=>{
+      if(resp.error){reject(new Error(resp.error));return;}
+      gdriveAccessToken=resp.access_token;
+      gdriveTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
+      resolve(gdriveAccessToken);
+    };
+    gdriveTokenClient.requestAccessToken({prompt:gdriveAccessToken?'':'consent'});
+  });
+}
+
+async function ensureGdriveFolder(token){
+  if(gdriveFolderId)return gdriveFolderId;
+  // Ψάξε αν υπάρχει ήδη ο φάκελος
+  const q=encodeURIComponent("name='ProjectFlow Files' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+  const searchRes=await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`,{
+    headers:{Authorization:'Bearer '+token}
+  });
+  const searchData=await searchRes.json();
+  if(searchData.files&&searchData.files.length){
+    gdriveFolderId=searchData.files[0].id;
+  }else{
+    const createRes=await fetch('https://www.googleapis.com/drive/v3/files',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({name:'ProjectFlow Files',mimeType:'application/vnd.google-apps.folder'})
+    });
+    const createData=await createRes.json();
+    gdriveFolderId=createData.id;
+  }
+  localStorage.setItem('pf-drive-upload-folder',gdriveFolderId);
+  return gdriveFolderId;
+}
+
+function fileIconFor(mimeType,name){
+  if(mimeType&&mimeType.includes('pdf'))return '📕';
+  if(mimeType&&mimeType.includes('word'))return '📘';
+  if(mimeType&&(mimeType.includes('sheet')||mimeType.includes('excel')))return '📗';
+  if(mimeType&&mimeType.includes('presentation'))return '📙';
+  if(mimeType&&mimeType.includes('image'))return '🖼️';
+  if(mimeType&&mimeType.includes('zip'))return '🗜️';
+  return '📄';
+}
+
+function formatFileSize(bytes){
+  if(!bytes)return '';
+  const b=parseInt(bytes);
+  if(b<1024)return b+' B';
+  if(b<1024*1024)return (b/1024).toFixed(0)+' KB';
+  return (b/1024/1024).toFixed(1)+' MB';
+}
+
+async function uploadFileToDrive(file,entityType,entityId){
+  const btn=document.getElementById('file-upload-btn-'+entityType+'-current');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Ανέβασμα...';}
+  try{
+    const token=await getGdriveAccessToken();
+    const folderId=await ensureGdriveFolder(token);
+    const metadata={name:file.name,parents:[folderId]};
+    const form=new FormData();
+    form.append('metadata',new Blob([JSON.stringify(metadata)],{type:'application/json'}));
+    form.append('file',file);
+    const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,mimeType,size',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token},
+      body:form
+    });
+    const data=await res.json();
+    if(!data.id)throw new Error(data.error?.message||'Το ανέβασμα απέτυχε');
+    // Κάνε το αρχείο προσβάσιμο σε όποιον έχει το link (ώστε να το βλέπει και ο άλλος χρήστης)
+    await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`,{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({role:'reader',type:'anyone'})
+    });
+    addFileToEntity(entityType,entityId,{
+      id:data.id,name:data.name,url:data.webViewLink,mimeType:data.mimeType,
+      size:data.size||0,uploadedBy:currentUser?currentUser.email:'unknown',ts:Date.now()
+    });
+    showToast('📎 Το αρχείο ανέβηκε επιτυχώς!');
+  }catch(e){
+    console.warn('Drive upload error:',e);
+    alert('Σφάλμα ανεβάσματος: '+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='📎 Ανέβασμα αρχείου';}
+  }
+}
+
+function addFileToEntity(entityType,entityId,fileObj){
+  let entity=null;
+  if(entityType==='project'){
+    entity=(appData.projects||[]).find(p=>p.id===entityId);
+  }else if(entityType==='task'){
+    for(const p of (appData.projects||[])){
+      for(const ph of (p.phases||[])){
+        const t=(ph.tasks||[]).find(x=>x.id===entityId);
+        if(t){entity=t;break;}
+      }
+      if(entity)break;
+    }
+  }
+  if(!entity)return;
+  if(!entity.files)entity.files=[];
+  entity.files.push(fileObj);
+  saveData();
+  renderFileList(entityType,entityId);
+  if(entityType==='task'&&currentView==='project')renderProject(currentProjectId);
+}
+
+function removeFileFromEntity(entityType,entityId,fileId){
+  if(!confirm('Αφαίρεση αρχείου από το ProjectFlow; (Το αρχείο ΔΕΝ διαγράφεται από το Google Drive σου)'))return;
+  let entity=null;
+  if(entityType==='project'){
+    entity=(appData.projects||[]).find(p=>p.id===entityId);
+  }else if(entityType==='task'){
+    for(const p of (appData.projects||[])){
+      for(const ph of (p.phases||[])){
+        const t=(ph.tasks||[]).find(x=>x.id===entityId);
+        if(t){entity=t;break;}
+      }
+      if(entity)break;
+    }
+  }
+  if(!entity)return;
+  entity.files=(entity.files||[]).filter(f=>f.id!==fileId);
+  saveData();
+  renderFileList(entityType,entityId);
+  if(entityType==='task'&&currentView==='project')renderProject(currentProjectId);
+}
+
+function getEntityFiles(entityType,entityId){
+  let entity=null;
+  if(entityType==='project'){
+    entity=(appData.projects||[]).find(p=>p.id===entityId);
+  }else if(entityType==='task'){
+    for(const p of (appData.projects||[])){
+      for(const ph of (p.phases||[])){
+        const t=(ph.tasks||[]).find(x=>x.id===entityId);
+        if(t){entity=t;break;}
+      }
+      if(entity)break;
+    }
+  }
+  return entity?(entity.files||[]):[];
+}
+
+function renderFileList(entityType,entityId){
+  const container=document.getElementById('file-list-'+entityType+'-current');
+  if(!container)return;
+  const files=getEntityFiles(entityType,entityId);
+  if(!files.length){container.innerHTML='';return;}
+  container.innerHTML=files.map(f=>`
+    <div class="file-chip">
+      <span class="file-chip-icon">${fileIconFor(f.mimeType,f.name)}</span>
+      <div class="file-chip-info">
+        <a class="file-chip-name" href="${f.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(f.name)}</a>
+        <div class="file-chip-meta">${formatFileSize(f.size)}${f.size?' · ':''}${getDisplayName(f.uploadedBy)}</div>
+      </div>
+      <button class="file-chip-remove" title="Αφαίρεση" onclick="removeFileFromEntity('${entityType}','${entityId}','${f.id}')">✕</button>
+    </div>`).join('');
+}
+
+function triggerFileUpload(entityType,entityId){
+  const input=document.createElement('input');
+  input.type='file';
+  input.onchange=e=>{
+    const file=e.target.files[0];
+    if(file)uploadFileToDrive(file,entityType,entityId);
+  };
+  input.click();
 }
 
 // ── AUTO DOWNLOAD & GOOGLE DRIVE ──
