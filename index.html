@@ -2005,7 +2005,7 @@ async function uploadFileToDrive(file,entityType,entityId,existingToken){
     const token=existingToken||await getGdriveAccessToken();
     if(!gdriveToastShownThisSession){
       await fetchGdriveConnectedEmail(token);
-      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε Google Drive: '+gdriveConnectedEmail);
+      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε ως '+gdriveConnectedEmail+' — πάτα ξανά 📎 αν δεν άνοιξε ο επιλογέας αρχείου');
       gdriveToastShownThisSession=true;
     }
     const uploaded=await performDriveUpload(file,token);
@@ -2120,7 +2120,7 @@ function triggerFileUpload(entityType,entityId){
   getGdriveAccessToken().then(async token=>{
     if(!gdriveToastShownThisSession){
       await fetchGdriveConnectedEmail(token);
-      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε Google Drive: '+gdriveConnectedEmail);
+      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε ως '+gdriveConnectedEmail+' — πάτα ξανά 📎 αν δεν άνοιξε ο επιλογέας αρχείου');
       gdriveToastShownThisSession=true;
     }
     if(btn){btn.disabled=false;btn.innerHTML='📎 Ανέβασμα αρχείου';}
@@ -2476,7 +2476,7 @@ function triggerChatFileUpload(){
   getGdriveAccessToken().then(async token=>{
     if(!gdriveToastShownThisSession){
       await fetchGdriveConnectedEmail(token);
-      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε Google Drive: '+gdriveConnectedEmail);
+      if(gdriveConnectedEmail)showToast('☁️ Συνδέθηκε ως '+gdriveConnectedEmail+' — πάτα ξανά 📎 αν δεν άνοιξε ο επιλογέας αρχείου');
       gdriveToastShownThisSession=true;
     }
     if(attachBtn){attachBtn.disabled=false;attachBtn.textContent='📎';}
