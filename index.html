@@ -1880,7 +1880,7 @@ function ensureGdriveTokenClient(){
   return true;
 }
 
-let gdriveConnectedEmail=null;
+let gdriveConnectedEmail=localStorage.getItem('pf-drive-account-email')||null;
 
 function getGdriveAccessToken(){
   return new Promise((resolve,reject)=>{
@@ -1908,7 +1908,9 @@ function getGdriveAccessToken(){
       gdriveTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
       resolve(gdriveAccessToken);
     };
-    gdriveTokenClient.requestAccessToken({prompt:''});
+    const tokenParams={prompt:''};
+    if(gdriveConnectedEmail)tokenParams.hint=gdriveConnectedEmail;
+    gdriveTokenClient.requestAccessToken(tokenParams);
   });
 }
 
@@ -1919,6 +1921,7 @@ async function fetchGdriveConnectedEmail(token){
     });
     const data=await res.json();
     gdriveConnectedEmail=data.user?data.user.emailAddress:null;
+    if(gdriveConnectedEmail)localStorage.setItem('pf-drive-account-email',gdriveConnectedEmail);
     updateGdriveIndicators();
     return gdriveConnectedEmail;
   }catch(e){return null;}
