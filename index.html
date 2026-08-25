@@ -145,6 +145,27 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
 .stat-val{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--text);line-height:1}
 .stat-sub{font-size:12px;color:var(--text3);margin-top:4px}
 .proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px}
+.proj-list{display:flex;flex-direction:column;gap:8px}
+.view-toggle-row{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:14px}
+.view-toggle-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Figtree',sans-serif;transition:all .15s}
+.view-toggle-btn:hover{border-color:var(--accent);color:var(--accent)}
+.view-toggle-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.list-row{display:flex;align-items:center;gap:14px;padding:12px 18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;text-decoration:none;color:inherit;animation:fadeUp .3s ease backwards}
+.list-row:hover{border-color:var(--accent);box-shadow:var(--shadow)}
+.list-row-color{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.list-row-name{font-weight:700;font-size:14px;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.list-row-group{font-size:11px;color:var(--accent);flex-shrink:0}
+.list-row-mid{display:flex;align-items:center;gap:16px;flex:1;min-width:0}
+.list-row-progress{display:flex;align-items:center;gap:8px;min-width:130px}
+.list-row-progress .progress-bar{flex:1;height:5px}
+.list-row-progress-pct{font-size:12px;font-weight:700;min-width:32px;text-align:right}
+.list-row-badges{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.list-row-tasks{font-size:11.5px;color:var(--text3);white-space:nowrap;flex-shrink:0}
+.list-row-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+@media (max-width:900px){
+  .list-row{flex-wrap:wrap}
+  .list-row-mid{flex-basis:100%;order:3;margin-top:8px}
+}
 .proj-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:all .2s;text-decoration:none;display:block}
 .proj-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
 .proj-card-top{padding:20px 22px 16px;border-bottom:1px solid var(--border)}
@@ -1234,6 +1255,34 @@ function renderStatsOverview(projects){
   </div>`;
 }
 
+function buildListRowHtml(p){
+  const tasks=getAllTasks(p);
+  const pct=calcProgress(tasks);
+  const col=progressColor(pct);
+  const groupName=p.groupId?((groupsData.find(g=>g.id===p.groupId)||{}).name||''):'';
+  const pi=PRIORITY_INFO[p.priority]||PRIORITY_INFO.p2;
+  const statusVal=p.projectStatus||'active';
+  const totalComments=tasks.reduce((a,t)=>a+countTaskComments(t),0);
+  const totalFiles=(p.files||[]).length+tasks.reduce((a,t)=>a+countTaskFiles(t),0);
+  return `
+    <span class="list-row-color" style="background:${p.color}"></span>
+    <span class="list-row-name" title="${p.name}">${p.name}</span>
+    ${groupName?`<span class="list-row-group">· ${groupName}</span>`:''}
+    <div class="list-row-mid">
+      <span class="${pi.cls==='p1'?'sb-proj-p1':pi.cls==='p2'?'sb-proj-p2':''}" style="font-size:11.5px;font-weight:700;color:${pi.cls==='p1'?'#dc2626':pi.cls==='p2'?'#d97706':'var(--text3)'};white-space:nowrap">${pi.short}</span>
+      <span class="proj-status-select ${PROJ_STATUS_CLASS[statusVal]||'pss-active'}" style="pointer-events:none;font-size:11px;padding:3px 8px">${PROJ_STATUS_LABEL[statusVal]||statusVal}</span>
+      <div class="list-row-progress">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div>
+        <span class="list-row-progress-pct" style="color:${col}">${pct}%</span>
+      </div>
+      <span class="list-row-tasks">${tasks.length} tasks</span>
+    </div>
+    <div class="list-row-right">
+      ${totalComments>0?`<span class="proj-card-comment-badge">💬 ${totalComments}</span>`:''}
+      ${totalFiles>0?`<span class="proj-card-file-badge">📎 ${totalFiles}</span>`:''}
+    </div>`;
+}
+
 function buildCardHtml(p){
   const tasks=getAllTasks(p);
   const s=getStats(tasks);
@@ -1343,18 +1392,25 @@ function renderDashboard(){
   if(filterPriority) projects=projects.filter(p=>(p.priority||'p2')===filterPriority);
   if(filterStatus) projects=projects.filter(p=>(p.projectStatus||'active')===filterStatus);
   const grid=document.getElementById('proj-grid');
-  // Build HTML: stats overview + filter bar
+  const dashView=localStorage.getItem('pf-dash-view')||'grid';
+  // Build HTML: stats overview + filter bar + view toggle
   let html=renderStatsOverview(allProjects);
+  html+=`<div class="view-toggle-row">
+    <button class="view-toggle-btn${dashView==='grid'?' active':''}" onclick="setDashboardView('grid')">▦ Κάρτες</button>
+    <button class="view-toggle-btn${dashView==='list'?' active':''}" onclick="setDashboardView('list')">☰ Λίστα</button>
+  </div>`;
   if(!projects.length){
     html+=`<div style="text-align:center;padding:40px 20px;color:var(--text2)"><div style="font-size:36px;margin-bottom:12px">🔍</div><div style="font-size:15px;font-weight:600;margin-bottom:6px">${(filterPriority||filterStatus)?'Δεν βρέθηκαν projects με αυτά τα φίλτρα':'Δεν υπάρχουν projects'}</div>${(filterPriority||filterStatus)?'<button class="btn btn-ghost" style="margin-top:12px" onclick="clearFilters()">Καθαρισμός φίλτρων</button>':''}</div>`;
     grid.innerHTML=html;
+    grid.className=dashView==='list'?'proj-list':'proj-grid';
     return;
   }
   if(filterPriority||filterStatus) html+=`<div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">Εμφανίζονται <strong>${projects.length}</strong> από ${allProjects.length} projects</div>`;
   grid.innerHTML=html;
+  grid.className=dashView==='list'?'proj-list':'proj-grid';
   projects.forEach((p,i)=>{
     const card=document.createElement('a');
-    card.className='proj-card';
+    card.className=dashView==='list'?'list-row':'proj-card';
     card.href='#';
     card.style.animationDelay=(i*.06)+'s';
     card.onclick=e=>{
@@ -1362,9 +1418,14 @@ function renderDashboard(){
       e.preventDefault();
       navigate('project',p.id);
     };
-    card.innerHTML=buildCardHtml(p);
+    card.innerHTML=dashView==='list'?buildListRowHtml(p):buildCardHtml(p);
     grid.appendChild(card);
   });
+}
+
+function setDashboardView(v){
+  localStorage.setItem('pf-dash-view',v);
+  renderDashboard();
 }
 
 // ── PROJECT VIEW ──
