@@ -163,6 +163,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
 .list-row-progress{display:flex;align-items:center;gap:8px;min-width:130px}
 .list-row-progress .progress-bar{flex:1;height:5px}
 .list-row-progress-pct{font-size:12px;font-weight:700;min-width:32px;text-align:right}
+.list-row-priority{font-size:11.5px;font-weight:700;white-space:nowrap;flex-shrink:0}
 .list-row-tasks{font-size:11.5px;color:var(--text3);white-space:nowrap;flex-shrink:0}
 @media (max-width:900px){
   .list-row{flex-wrap:wrap}
@@ -1281,7 +1282,7 @@ function buildListRowHtml(p){
       ${p.description?`<div class="list-row-desc">${p.description}</div>`:''}
     </div>
     <div class="list-row-stats">
-      <span class="${pi.cls==='p1'?'sb-proj-p1':pi.cls==='p2'?'sb-proj-p2':''}" style="font-size:11.5px;font-weight:700;color:${pi.cls==='p1'?'#dc2626':pi.cls==='p2'?'#d97706':'var(--text3)'};white-space:nowrap">${pi.short}</span>
+      <span class="list-row-priority" style="color:${pi.cls==='p1'?'#dc2626':pi.cls==='p2'?'#d97706':'var(--text3)'}">${pi.short}</span>
       <span class="proj-status-select ${PROJ_STATUS_CLASS[statusVal]||'pss-active'}" style="pointer-events:none;font-size:11px;padding:3px 8px">${PROJ_STATUS_LABEL[statusVal]||statusVal}</span>
       <div class="list-row-progress">
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div>
