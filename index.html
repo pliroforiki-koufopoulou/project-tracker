@@ -640,7 +640,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
 </div>
 
 <!-- MODALS -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+<div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal-project" onclick="event.stopPropagation()">
     <div class="modal-title" id="modal-proj-title">Νέο Project</div>
     <div class="form-group"><label class="form-label">Όνομα Project</label><input class="form-input" id="inp-proj-name" placeholder="π.χ. Καμπάνια Social Media"></div>
@@ -741,7 +741,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
 </div>
 </div>
 </div>
-<div class="modal-overlay" id="modal-restore-overlay" onclick="closeAllModals()" style="display:none">
+<div class="modal-overlay" id="modal-restore-overlay" style="display:none">
   <div class="modal" onclick="event.stopPropagation()" style="max-width:500px;display:block">
     <div class="modal-header">
       <div class="modal-title">🔄 Επαναφορά από Auto-Backup</div>
@@ -754,7 +754,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeAllModals()">Κλείσιμο</button>
     </div>
-<div class="modal-overlay" id="modal-gdrive-overlay" onclick="closeAllModals()" style="display:none">
+<div class="modal-overlay" id="modal-gdrive-overlay" style="display:none">
   <div class="modal gdrive-modal-content" onclick="event.stopPropagation()" style="max-width:580px;display:block">
     <div class="modal-header">
       <div class="modal-title">☁️ Αποθήκευση στο Google Drive</div>
@@ -1758,7 +1758,7 @@ function closeAllModals(){
     if(el)el.style.display='none';
   });
 }
-function closeModal(e){if(e.target===document.getElementById('modal-overlay'))closeAllModals();}
+function closeModal(e){/* Το κλείσιμο με κλικ εκτός παραθύρου έχει απενεργοποιηθεί — κλείνει μόνο από τα κουμπιά */}
 
 // ── JSON EXPORT ──
 function exportJSON(){
@@ -2943,7 +2943,7 @@ firebase.auth().onAuthStateChanged(function(user){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <!-- TASK COMMENTS DRAWER -->
-<div class="chat-overlay" id="chat-overlay" onclick="closeTaskChat()"></div>
+<div class="chat-overlay" id="chat-overlay"></div>
 <div class="chat-drawer" id="chat-drawer">
   <div class="chat-drawer-header">
     <div>
