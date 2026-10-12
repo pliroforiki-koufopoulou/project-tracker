@@ -163,6 +163,13 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
 .list-row-progress{display:flex;align-items:center;gap:8px;min-width:130px}
 .list-row-progress .progress-bar{flex:1;height:5px}
 .list-row-progress-pct{font-size:12px;font-weight:700;min-width:32px;text-align:right}
+.proj-drivepath{display:inline-flex;align-items:center;gap:8px;margin:8px 0 0 26px;padding:5px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--border);font-size:12px;color:var(--text2);cursor:pointer;max-width:100%}
+.proj-drivepath:hover{border-color:var(--accent);color:var(--accent)}
+.proj-drivepath-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace}
+.proj-drivepath-copy{font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap}
+.login-link{background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;margin-top:12px;font-family:'Figtree',sans-serif}
+.login-link:hover{text-decoration:underline}
+.login-success{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;font-size:12.5px;padding:9px 12px;border-radius:8px;margin-bottom:14px;text-align:left}
 .list-row-priority{font-size:11.5px;font-weight:700;white-space:nowrap;flex-shrink:0}
 .list-row-tasks{font-size:11.5px;color:var(--text3);white-space:nowrap;flex-shrink:0}
 @media (max-width:900px){
@@ -494,9 +501,11 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
     <div class="login-title">ProjectFlow</div>
     <div class="login-subtitle">Συνδέσου για να συνεχίσεις</div>
     <div id="login-error" class="login-error" style="display:none"></div>
+    <div id="login-success" class="login-success" style="display:none"></div>
     <input type="email" id="login-email" class="login-input" placeholder="Email" autocomplete="username">
     <input type="password" id="login-password" class="login-input" placeholder="Κωδικός" autocomplete="current-password">
     <button class="login-btn" id="login-submit-btn" onclick="doLogin()">Σύνδεση</button>
+    <button class="login-link" type="button" onclick="doResetPassword()">Ξέχασα τον κωδικό μου</button>
     <div class="login-hint">Πρόσβαση μόνο για εξουσιοδοτημένους χρήστες</div>
   </div>
 </div>
@@ -636,6 +645,7 @@ body{font-family:'Figtree',sans-serif;background:var(--bg);color:var(--text);hei
     <div class="modal-title" id="modal-proj-title">Νέο Project</div>
     <div class="form-group"><label class="form-label">Όνομα Project</label><input class="form-input" id="inp-proj-name" placeholder="π.χ. Καμπάνια Social Media"></div>
     <div class="form-group"><label class="form-label">Περιγραφή</label><input class="form-input" id="inp-proj-desc" placeholder="Σύντομη περιγραφή..."></div>
+    <div class="form-group"><label class="form-label">📂 Διαδρομή φακέλου Google Drive</label><input class="form-input" id="inp-proj-drivepath" placeholder="π.χ. Το Drive μου\PRODUCTS\Φάκελος project"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Ημ/νία Έναρξης</label><input class="form-input" type="date" id="inp-proj-start"></div>
       <div class="form-group"><label class="form-label">Εβδομάδες</label><input class="form-input" type="number" id="inp-proj-weeks" placeholder="10" min="1"></div>
@@ -1447,7 +1457,7 @@ function renderProject(projId){
   document.getElementById('proj-breadcrumb').textContent=p.name;
   const tasks=getAllTasks(p);const s=getStats(tasks);const pct=calcProgress(tasks);const col=progressColor(pct);
   const startFmt=p.startDate?new Date(p.startDate).toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'}):'—';
-  let html=`<div class="proj-header-card"><div class="proj-header-top"><div><div class="proj-title-row"><div style="display:flex;align-items:center;gap:12px"><span class="proj-color-dot" style="background:${p.color}"></span><span class="proj-title">${p.name}</span></div><button class="proj-priority-badge ${(PRIORITY_INFO[p.priority]||PRIORITY_INFO.p2).cls}" onclick="toggleProjectPriority('${p.id}',event)" title="Κλικ → P1/P2/P3">${(PRIORITY_INFO[p.priority]||PRIORITY_INFO.p2).label}</button></div>${p.description?`<div style="color:var(--text2);font-size:13.5px;margin-top:6px;margin-left:26px">${p.description}</div>`:''}<div class="proj-meta-row" style="margin-left:26px">${p.startDate?`<div class="proj-meta-item">📅 Έναρξη: <span>${startFmt}</span></div>`:''} ${p.totalWeeks?`<div class="proj-meta-item">⏱ Εβδομάδες: <span>${p.totalWeeks}</span></div>`:''}<div class="proj-meta-item">📁 Φάσεις: <span>${(p.phases||[]).length}</span></div><div class="proj-meta-item">📋 Εργασίες: <span>${tasks.length}</span></div></div></div><div style="display:flex;align-items:center;gap:10px"><select class="proj-status-select ${PROJ_STATUS_CLASS[p.projectStatus||'active']||'pss-active'}" onchange="changeProjectStatus('${p.id}',this.value);this.className='proj-status-select '+(PROJ_STATUS_CLASS[this.value]||'pss-active')"><option value="active" ${(p.projectStatus||'active')==='active'?'selected':''}>✅ Ενεργό</option><option value="review" ${(p.projectStatus||'active')==='review'?'selected':''}>🔍 Προς Αξιολόγηση</option><option value="frozen" ${(p.projectStatus||'active')==='frozen'?'selected':''}>❄️ Παγωμένο</option><option value="completed" ${(p.projectStatus||'active')==='completed'?'selected':''}>🏁 Ολοκληρώθηκε</option></select><button class="btn btn-danger" onclick="confirmDeleteProject('${p.id}')">🗑 Διαγραφή</button></div></div><div class="proj-overall-progress"><div class="prog-label-row"><span>Συνολική Πρόοδος</span><strong style="color:${col}">${pct}%</strong></div><div class="progress-bar-lg"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div><div class="proj-status-summary"><span class="pss-item"><span style="color:#10b981;font-size:16px">●</span> Ολοκληρωμένα: <strong>${s.done}</strong></span><span class="pss-item"><span style="color:#3b82f6;font-size:16px">●</span> Σε εξέλιξη: <strong>${s.prog}</strong></span><span class="pss-item"><span style="color:#ef4444;font-size:16px">●</span> Καθυστέρηση: <strong>${s.late}</strong></span><span class="pss-item"><span style="color:#9ca3af;font-size:16px">●</span> Εκκρεμείς: <strong>${s.none}</strong></span></div></div></div>`;
+  let html=`<div class="proj-header-card"><div class="proj-header-top"><div><div class="proj-title-row"><div style="display:flex;align-items:center;gap:12px"><span class="proj-color-dot" style="background:${p.color}"></span><span class="proj-title">${p.name}</span></div><button class="proj-priority-badge ${(PRIORITY_INFO[p.priority]||PRIORITY_INFO.p2).cls}" onclick="toggleProjectPriority('${p.id}',event)" title="Κλικ → P1/P2/P3">${(PRIORITY_INFO[p.priority]||PRIORITY_INFO.p2).label}</button></div>${p.description?`<div style="color:var(--text2);font-size:13.5px;margin-top:6px;margin-left:26px">${p.description}</div>`:''}${p.driveFolderPath?`<div class="proj-drivepath" onclick="copyDrivePath('${p.id}')" title="Κλικ για αντιγραφή"><span>📂</span><span class="proj-drivepath-text">${escapeHtmlAttr(p.driveFolderPath)}</span><span class="proj-drivepath-copy">⧉ Αντιγραφή</span></div>`:''}<div class="proj-meta-row" style="margin-left:26px">${p.startDate?`<div class="proj-meta-item">📅 Έναρξη: <span>${startFmt}</span></div>`:''} ${p.totalWeeks?`<div class="proj-meta-item">⏱ Εβδομάδες: <span>${p.totalWeeks}</span></div>`:''}<div class="proj-meta-item">📁 Φάσεις: <span>${(p.phases||[]).length}</span></div><div class="proj-meta-item">📋 Εργασίες: <span>${tasks.length}</span></div></div></div><div style="display:flex;align-items:center;gap:10px"><select class="proj-status-select ${PROJ_STATUS_CLASS[p.projectStatus||'active']||'pss-active'}" onchange="changeProjectStatus('${p.id}',this.value);this.className='proj-status-select '+(PROJ_STATUS_CLASS[this.value]||'pss-active')"><option value="active" ${(p.projectStatus||'active')==='active'?'selected':''}>✅ Ενεργό</option><option value="review" ${(p.projectStatus||'active')==='review'?'selected':''}>🔍 Προς Αξιολόγηση</option><option value="frozen" ${(p.projectStatus||'active')==='frozen'?'selected':''}>❄️ Παγωμένο</option><option value="completed" ${(p.projectStatus||'active')==='completed'?'selected':''}>🏁 Ολοκληρώθηκε</option></select><button class="btn btn-danger" onclick="confirmDeleteProject('${p.id}')">🗑 Διαγραφή</button></div></div><div class="proj-overall-progress"><div class="prog-label-row"><span>Συνολική Πρόοδος</span><strong style="color:${col}">${pct}%</strong></div><div class="progress-bar-lg"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div><div class="proj-status-summary"><span class="pss-item"><span style="color:#10b981;font-size:16px">●</span> Ολοκληρωμένα: <strong>${s.done}</strong></span><span class="pss-item"><span style="color:#3b82f6;font-size:16px">●</span> Σε εξέλιξη: <strong>${s.prog}</strong></span><span class="pss-item"><span style="color:#ef4444;font-size:16px">●</span> Καθυστέρηση: <strong>${s.late}</strong></span><span class="pss-item"><span style="color:#9ca3af;font-size:16px">●</span> Εκκρεμείς: <strong>${s.none}</strong></span></div></div></div>`;
   (p.phases||[]).forEach((ph,pi)=>{
     const ppct=calcProgress(ph.tasks||[]);const pcol=progressColor(ppct);const isOpen=ph._open!==false;
     html+=`<div class="phase-block" id="ph-block-${ph.id}" style="animation-delay:${pi*.06}s"><div class="phase-header" onclick="togglePhase('${p.id}','${ph.id}')"><div class="phase-header-left"><div class="phase-color-bar" style="background:${ph.color}"></div><span class="phase-name">${ph.name}</span><span class="phase-task-count">${(ph.tasks||[]).length} tasks</span></div><div class="phase-header-right"><div style="display:flex;gap:6px;align-items:center"><div style="width:80px;height:4px;background:var(--border);border-radius:99px;overflow:hidden"><div style="width:${ppct}%;height:100%;background:${pcol};border-radius:99px"></div></div><span class="phase-prog-mini" style="color:${pcol}">${ppct}%</span></div><button class="task-action-btn" onclick="event.stopPropagation();editPhase('${p.id}','${ph.id}')">✎</button><button class="task-action-btn del" onclick="event.stopPropagation();confirmDeletePhase('${p.id}','${ph.id}')">🗑</button><span class="phase-chevron ${isOpen?'open':''}">▾</span></div></div><div class="phase-body" id="ph-body-${ph.id}" style="${isOpen?'':'display:none'}"><table class="task-table"><thead><tr><th style="width:36%">Εργασία</th><th>Υπεύθυνος</th><th>Προτεραιότητα</th><th>Status</th><th>Εβδομάδες</th><th style="width:60px"></th></tr></thead><tbody>`;
@@ -1560,6 +1570,7 @@ function openProjectModal(projId){
   document.getElementById('modal-proj-title').textContent=p?'Επεξεργασία Project':'Νέο Project';
   document.getElementById('inp-proj-name').value=p?p.name:'';
   document.getElementById('inp-proj-desc').value=p?p.description:'';
+  document.getElementById('inp-proj-drivepath').value=p?(p.driveFolderPath||''):'';
   document.getElementById('inp-proj-start').value=p?p.startDate:'';
   document.getElementById('inp-proj-weeks').value=p?p.totalWeeks:'';
   selectedProjColor=p?p.color:PROJECT_COLORS[0];
@@ -1598,11 +1609,11 @@ function saveProject(){
   const isNew=!editingProjectId;
   if(editingProjectId){
     const p=appData.projects.find(x=>x.id===editingProjectId);
-    if(p){p.name=name;p.description=document.getElementById('inp-proj-desc').value.trim();p.startDate=document.getElementById('inp-proj-start').value;p.totalWeeks=parseInt(document.getElementById('inp-proj-weeks').value)||0;p.color=selectedProjColor;p.groupId=document.getElementById('inp-proj-group').value||null;p.priority=document.getElementById('inp-proj-priority').value||'p2';p.projectStatus=document.getElementById('inp-proj-status').value||'active';}
+    if(p){p.name=name;p.description=document.getElementById('inp-proj-desc').value.trim();p.driveFolderPath=document.getElementById('inp-proj-drivepath').value.trim();p.startDate=document.getElementById('inp-proj-start').value;p.totalWeeks=parseInt(document.getElementById('inp-proj-weeks').value)||0;p.color=selectedProjColor;p.groupId=document.getElementById('inp-proj-group').value||null;p.priority=document.getElementById('inp-proj-priority').value||'p2';p.projectStatus=document.getElementById('inp-proj-status').value||'active';}
     logNotif('project','✏️',`Project ενημερώθηκε`,`"${name}" τροποποιήθηκε`,{projId:editingProjectId});
   }else{
     const newId=uid();
-    appData.projects.push({id:newId,name,description:document.getElementById('inp-proj-desc').value.trim(),color:selectedProjColor,startDate:document.getElementById('inp-proj-start').value,totalWeeks:parseInt(document.getElementById('inp-proj-weeks').value)||0,phases:[],groupId:document.getElementById('inp-proj-group').value||null,createdAt:Date.now(),priority:document.getElementById('inp-proj-priority').value||'p2',projectStatus:document.getElementById('inp-proj-status').value||'active'});
+    appData.projects.push({id:newId,name,description:document.getElementById('inp-proj-desc').value.trim(),driveFolderPath:document.getElementById('inp-proj-drivepath').value.trim(),color:selectedProjColor,startDate:document.getElementById('inp-proj-start').value,totalWeeks:parseInt(document.getElementById('inp-proj-weeks').value)||0,phases:[],groupId:document.getElementById('inp-proj-group').value||null,createdAt:Date.now(),priority:document.getElementById('inp-proj-priority').value||'p2',projectStatus:document.getElementById('inp-proj-status').value||'active'});
     logNotif('project','🆕',`Νέο Project προστέθηκε`,`"${name}" δημιουργήθηκε`,{projId:newId});
   }
   saveData();closeAllModals();
@@ -2652,6 +2663,39 @@ function doLogin(){
       } else if(err.code==='auth/network-request-failed'){
         msg='Πρόβλημα δικτύου. Έλεγξε τη σύνδεσή σου.';
       }
+      errEl.textContent=msg;
+      errEl.style.display='block';
+    });
+}
+
+function escapeHtmlAttr(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function copyDrivePath(projId){
+  const p=(appData.projects||[]).find(x=>x.id===projId);
+  if(!p||!p.driveFolderPath)return;
+  const done=()=>{if(typeof showToast==='function')showToast('📂 Η διαδρομή αντιγράφηκε');};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(p.driveFolderPath).then(done).catch(()=>{});}
+}
+
+function doResetPassword(){
+  const email=document.getElementById('login-email').value.trim();
+  const errEl=document.getElementById('login-error');
+  const okEl=document.getElementById('login-success');
+  errEl.style.display='none';okEl.style.display='none';
+  if(!email){
+    errEl.textContent='Γράψε πρώτα το email σου στο πεδίο παραπάνω και ξαναπάτα "Ξέχασα τον κωδικό μου".';
+    errEl.style.display='block';
+    return;
+  }
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(()=>{
+      okEl.textContent='Στάλθηκε email επαναφοράς στο '+email+'. Έλεγξε τα εισερχόμενα (και τα spam).';
+      okEl.style.display='block';
+    })
+    .catch(err=>{
+      let msg='Δεν ήταν δυνατή η αποστολή. Δοκίμασε ξανά.';
+      if(err.code==='auth/invalid-email')msg='Μη έγκυρο email.';
+      else if(err.code==='auth/too-many-requests')msg='Πολλές προσπάθειες. Δοκίμασε αργότερα.';
+      else if(err.code==='auth/network-request-failed')msg='Πρόβλημα δικτύου. Έλεγξε τη σύνδεσή σου.';
       errEl.textContent=msg;
       errEl.style.display='block';
     });
